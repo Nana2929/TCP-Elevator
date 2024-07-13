@@ -61,14 +61,6 @@ public:
     };
     // destructor
     ~Elevator () {};
-    // run the elevator
-    void run() {
-        std::thread print_thread(&Elevator::printState, this);
-        std::thread control_thread(&Elevator::stateTransit, this);
-        print_thread.join();
-        control_thread.join();
-
-    }
     // ** print_thread
     void printState(){
         while (true){
@@ -80,6 +72,7 @@ public:
     void pressBtn(const int btn){
         std::lock_guard<std::mutex> lock(mtx);
         pressedBtns[btn]=true;
+        std::cout << "Button " << btn << " is pressed." << std::endl;
     }
     // thread 2
     // ** control_thread
@@ -191,11 +184,17 @@ void handle_signal(int signal, int client_fd, Elevator& elevator) {
     send(client_fd, response, strlen(response), 0);
 }
 
+// void run() {
+//         std::thread print_thread(&Elevator::printState, this);
+//         std::thread control_thread(&Elevator::stateTransit, this);
+//         print_thread.join();
+//         control_thread.join();
 
-int main() {
+//     }
+
+void serve(Elevator & elevator){
     const char* host = "0.0.0.0";
     int port = 7000;
-
 
     int sock_fd, new_fd;
     socklen_t addrlen;
@@ -228,7 +227,7 @@ int main() {
         perror("Binding error");
         exit(1);
     }
-    printf("🛗 server start at: %s:%d\n", inet_ntoa(my_addr.sin_addr), port);
+    printf("🛗 server starts at: %s:%d\n", inet_ntoa(my_addr.sin_addr), port);
 
     status = listen(sock_fd, 5);
     if (status == -1) {
@@ -237,8 +236,6 @@ int main() {
     }
     printf("wait for connection...\n");
     addrlen = sizeof(client_addr);
-    Elevator elevator;
-    elevator.run();
     // print this
     std::cout << "-----------------------------------------------" << std::endl;
     std::cout << "* ELEVATOR_SIGNAL_PRESS_1F     = 1" << std::endl;
@@ -269,6 +266,15 @@ int main() {
         }
     }
     close(sock_fd);
+}
 
+int main() {
+    Elevator elevator;
+    std::thread print_thread(&Elevator::printState, &elevator);
+    std::thread control_thread(&Elevator::stateTransit, &elevator);
+    std::thread serve_thread(serve, std::ref(elevator));
+    print_thread.join();
+    control_thread.join();
+    serve_thread.join();
     return 0;
 }
