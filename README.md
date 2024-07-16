@@ -109,6 +109,7 @@ And then open two terminals, one for the server and the other for the client. Ru
 // for server (this needs to be run first to set up the service)
 make
 ./server
+// use `make clean` to clean the cache first and rebuild from scratch by running the above
 ```
 ```
 // for client
@@ -128,11 +129,32 @@ This project requires a minimum of C++11 to run.
 ## Implementation
 ![](./images/state-diagram.png)
 
-### Multi-threading
-
 The server is implemented using multi-threading.
-The server itself is a thread listening for client request buttons, implemented in `src/elevator_server/elevator_server.cpp`.
-The elevator runs 2 threads, one for printing our 
+- The server itself is a thread listening for client request buttons, implemented in `src/elevator_server/elevator_server.cpp`.
+- The elevator runs 2 threads, one for printing out current state (`src/elevator_server/elevator.cpp printState()`) and the other for transiting the state (`src/elevator_server/elevator.cpp  stateTransit()`).
+  ```cpp
+  // ...
+    static const int BTN_NUM = 4;
+    const int OPEN_TIME = 2;
+    const int MOVE_TIME = 5;
+    State currState;
+    std::time_t actTime = 0; // action time
+    bool pressedBtns[BTN_NUM+1];
+  // ...
+  ```
+### Members of `Elevator` class
+  - `currState`: 6 states in total, marking the current state of the elevator (IDLE_1F, OPEN_1F, LIFT, IDLE_2f, OPEN_2F, GO_DOWN)
+  - `pressedBtns`: an array of 5 elements, marking which action buttons are pressed by the user for later request service (1-indexed, first element is dummy)
+  - `actTime`: the time when the last action was taken
+### Multi-threading
+- In which it could be observed that, `currState`and `pressedBtns` could be read and written by the *printing thread* and the *transiting thread*, so 2 mutexes are used to protect them; in practice I wrote them setters and getters for encapsulation. Furthermore, because a button press (and the subsequent state change) can happen in the middle of a second, which could cause the *printing thread* to miss out on printing the state (e.g. `OPEN` be printed just once instead of twice), I use a condition variable to notify the *printing thread* that the state has been updated, so that the printing count can be correctly displayed. Note that this could cause the *printing thread* to print out multiple states in one second if the state is updated multiple times in that second.
+- Extra Members of `Elevator` class
+  - `std::mutex mtx`: a mutex to protect the shared resource `currState` and `pressedBtns`
+  - `std::condition_variable cv`: a condition variable to notify the threads that the shared resource has been updated
+  - `std::unique_lock<std::mutex> lock(mtx)`: a lock called `lock` to protect the shared resource, the usage:
+    - `cv.wait(lock)`: a wait to wait for the condition variable to be notified
+    - `cv.notify_all()`: a notify to notify all the threads that the shared resource has been updated
+
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
