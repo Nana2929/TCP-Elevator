@@ -21,20 +21,36 @@
  * ELEVATOR_SIGNAL_FLOOR_2_DOWN = 4
  **********/
 
-// resources: https://shengyu7697.github.io/cpp-windows-tcp-socket/
-
-
 // thread-safe reading and writing
+/*
+although the operation of these functions are rather simple,
+they involve acquiring a lock and thus may not be good to be `inline`
+*/
 bool Elevator::isPressed(const int btn) {
+  // first check if btn is valid, if not return
   std::lock_guard<std::mutex> lock(mtx);
   return pressedBtns[btn];
 }
 
-void Elevator::cleanBtn(int btn) {
+void Elevator::cleanBtn(const int btn) {
+  if (btn <= 0 || btn > BTN_NUM) {
+    return;
+  }
   std::lock_guard<std::mutex> lock(mtx);
   pressedBtns[btn] = false;
 }
+State Elevator::getState() {
+  std::lock_guard<std::mutex> lock(stateMtx);
+  return currState;
+}
+void Elevator::setState(const State &state) {
+  std::lock_guard<std::mutex> lock(stateMtx);
+  currState = state;
+  stateCv.notify_one();  // Notify the printState thread
+}
 
+
+// translate state to string
 static std::string translateState(const State &state) {
   static std::unordered_map<State, std::string> state_map = {
       {State::IDLE_1F, "➡️⬅️ 1F-IDLE"},
@@ -49,42 +65,48 @@ static std::string translateState(const State &state) {
     return "UNKNOWN";
   }
 }
-
+// ** printing thread
 void Elevator::printState() {
   while (true) {
-    std::cout << translateState(currState) << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    {
+      std::unique_lock<std::mutex> lock(stateMtx);
+      stateCv.wait_for(lock, std::chrono::seconds(1));  // Wait for 1 second or a state change
+    }
+    // Access state safely
+    State cs = getState();
+    std::cout << translateState(cs) << std::endl;
   }
 }
-// thread-safe writing; user-exposed API
-// ** listening
+// ** func for the listening thread
 void Elevator::pressBtn(const int btn) {
   std::lock_guard<std::mutex> lock(mtx);
   pressedBtns[btn] = true;
   // std::cout << "Button " << btn << " is pressed." << std::endl;
 }
 
-// ** control_thread
+// ** control_thread + logic
 void Elevator::stateTransit() {
   while (true) {
-    // 1F-IDLE
-    if (currState == State::IDLE_1F) {
+    // IDLE_1F: it means it is DOOR CLOSED and it has no action
+    if (getState() == State::IDLE_1F) {
       if (isPressed(1) || isPressed(3)) {
-        currState = State::OPEN_1F;
+        // currState = State::OPEN_1F;
+        setState(State::OPEN_1F);
         actTime = std::time(0);
         cleanBtn(1);
         cleanBtn(3);
       } else if (isPressed(2) || isPressed(4)) {
-        currState = State::LIFT;
+        // currState = State::LIFT;
+        setState(State::LIFT);
         actTime = std::time(0);
         cleanBtn(2);
         cleanBtn(4);
       }
     }
-    // 1F-OPEN
-    else if (currState == State::OPEN_1F) {
-      // exception handling: if in the middle of opening, 1/3 is pressed, we
-      // need to reset the timer and reopen the door
+    // OPEN_1F
+    else if (getState() == State::OPEN_1F) {
+      // exception handling: if in the middle of opening, 1 or 3 action is take, we
+      // reset the timer and reopen the door
       while (std::difftime(std::time(0), actTime) < OPEN_TIME) {
         if (isPressed(1) || isPressed(3)) {
           actTime = std::time(0);
@@ -92,21 +114,25 @@ void Elevator::stateTransit() {
           cleanBtn(3);
         }
       }
-      currState = State::IDLE_1F;
+      // once the door has opened for 2 seconds, it will transit to IDLE_1F
+      // currState = State::IDLE_1F;
+      setState(State::IDLE_1F);
     }
     // LIFT
-    else if (currState == State::LIFT) {
+    else if (getState() == State::LIFT) {
       while (std::difftime(std::time(0), actTime) < MOVE_TIME) {
         ;
       }
-      cleanBtn(1); // clean internal butttons
-      cleanBtn(2); // clean internal butttons
-      cleanBtn(4); // it is moving up anyway, not taking an effect
-      currState = State::OPEN_2F;
-      actTime = std::time(0); // transit to 2F-OPEN
-    }                         // 2F-OPEN
-    // 2F-OPEN
-    else if (currState == State::OPEN_2F) {
+      cleanBtn(1); // clean internal butttons because it is already taking action
+      cleanBtn(2); // clean internal butttons becayse it is already taking action
+      cleanBtn(4); // if it is moving up anyway, it is not taking an effect of going to 2nd floor to meet the request
+      // only the action pressing button `3` will be recorded
+      // currState = State::OPEN_2F;
+      setState(State::OPEN_2F);
+      actTime = std::time(0);
+    }
+    // OPEN_2F
+    else if (getState() == State::OPEN_2F) {
       // exception handling
       while (std::difftime(std::time(0), actTime) < OPEN_TIME) {
         if (isPressed(2) || isPressed(4)) {
@@ -115,32 +141,37 @@ void Elevator::stateTransit() {
           cleanBtn(4);
         }
       }
-      currState = State::IDLE_2F;
+      // currState = State::IDLE_2F;
+      setState(State::IDLE_2F);
       actTime = std::time(0);
     }
-    // 2F-IDLE
-    else if (currState == State::IDLE_2F) {
-      if (isPressed(1) || isPressed(3)) {
-        currState = State::GO_DOWN;
-        actTime = std::time(0);
-        cleanBtn(1);
-        cleanBtn(3);
-      } else if (isPressed(2) || isPressed(4)) {
-        currState = State::OPEN_2F;
+    // IDLE_2F
+    else if (getState() == State::IDLE_2F) {
+      if (isPressed(2) || isPressed(4)) {
+        // currState = State::OPEN_2F;
+        setState(State::OPEN_2F);
         actTime = std::time(0);
         cleanBtn(2);
         cleanBtn(4);
       }
+      else if (isPressed(1) || isPressed(3)) {
+        // currState = State::GO_DOWN;
+        setState(State::GO_DOWN);
+        actTime = std::time(0);
+        cleanBtn(1);
+        cleanBtn(3);
+      }
     }
-    // GO-DOWN
-    else if (currState == State::GO_DOWN) {
+    // GO_DOWN
+    else if (getState() == State::GO_DOWN) {
       while (std::difftime(std::time(0), actTime) < MOVE_TIME) {
         ;
       }
       cleanBtn(1); // clean internal butttons
       cleanBtn(2); // clean internal butttons
       cleanBtn(3); // it is moving down anyway, not taking an effect
-      currState = State::OPEN_1F;
+      // currState = State::OPEN_1F;
+      setState(State::OPEN_1F);
       actTime = std::time(0); // transit to 1F-OPEN
     }
   } // end of while

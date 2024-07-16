@@ -7,9 +7,10 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include "config.hpp"
 // credit: https://shengyu7697.github.io/cpp-linux-tcp-socket/
-const char *host = "0.0.0.0";
-int port = 7000;
+
 
 int main() {
   int sock_fd;
@@ -26,8 +27,8 @@ int main() {
 
   // server address
   serv_name.sin_family = AF_INET;
-  inet_aton(host, &serv_name.sin_addr);
-  serv_name.sin_port = htons(port);
+  inet_aton(HOST, &serv_name.sin_addr);
+  serv_name.sin_port = htons(PORT);
 
   status = connect(sock_fd, (struct sockaddr *)&serv_name, sizeof(serv_name));
   if (status == -1) {

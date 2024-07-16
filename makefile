@@ -1,7 +1,7 @@
 PROJECT_NAME := server
 CXX := g++
 CXXFLAGS := -Wall -Wextra -std=c++11
-SRC_DIR := src
+SRC_DIR := src/elevator_server
 BUILD_DIR := build
 
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)

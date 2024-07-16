@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "elevator.hpp"
+#include "../config.hpp"
 
 void handle_signal(int signal, int client_fd, Elevator &elevator) {
   char response[1024] = {0};
@@ -37,8 +38,6 @@ void handle_signal(int signal, int client_fd, Elevator &elevator) {
 }
 
 void serve(Elevator &elevator) {
-  const char *host = "0.0.0.0";
-  int port = 7000;
 
   int sock_fd, new_fd;
   socklen_t addrlen;
@@ -62,15 +61,15 @@ void serve(Elevator &elevator) {
 
   // server address
   my_addr.sin_family = AF_INET;
-  inet_aton(host, &my_addr.sin_addr);
-  my_addr.sin_port = htons(port);
+  inet_aton(HOST, &my_addr.sin_addr);
+  my_addr.sin_port = htons(PORT);
 
   status = bind(sock_fd, (struct sockaddr *)&my_addr, sizeof(my_addr));
   if (status == -1) {
     perror("Binding error");
     exit(1);
   }
-  printf("🛗 server starts at: %s:%d\n", inet_ntoa(my_addr.sin_addr), port);
+  printf("🛗 server starts at: %s:%d\n", inet_ntoa(my_addr.sin_addr), PORT);
 
   status = listen(sock_fd, 5);
   if (status == -1) {
@@ -111,9 +110,9 @@ void serve(Elevator &elevator) {
 
 int main() {
   Elevator elevator;
+  std::thread serve_thread(serve, std::ref(elevator));
   std::thread print_thread(&Elevator::printState, &elevator);
   std::thread control_thread(&Elevator::stateTransit, &elevator);
-  std::thread serve_thread(serve, std::ref(elevator));
   print_thread.join();
   control_thread.join();
   serve_thread.join();

@@ -70,13 +70,13 @@ https://github.com/user-attachments/assets/0a95b49a-0449-4b36-8e04-2639af2ca8fe
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-1. This 2-floor elevator has two buttons on each floor and two buttons on the elevator panel. The elevator can lift up or go down between the two floors. Every lift-up or go-down action takes `5` second. Every opening takes `2` seconds.
-2.  To control this elevator, a user will need to gain access to the service of the elevator by opening a TCP connection. Once the connection is granted, the user has 4 buttons to press:
+1. This is a 2-floor simplified elevator. It  has two buttons on each floor and two buttons on the elevator panel. The elevator can lift up or go down between the two floors. Every lift-up or go-down action takes `5` second. Every opening takes `2` seconds.
+2.  To control this elevator, a user will need to gain access to the service of the elevator by opening a TCP connection. Once the connection is granted, the user has 4 actions to choose from:
     - `1`: 1F button on the elevator panel is pressed
     - `2`: 2F button on the elevator panel is pressed
     - `3`: 1F elevator call button is pressed
     - `4`: 2F elevator call button is pressed
-The user can press any button at any time (through keyboard). The elevator will respond to the button press accordingly.
+The user can take any action at any time (through keyboard). The elevator will respond to the button press accordingly.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -99,28 +99,51 @@ The user can press any button at any time (through keyboard). The elevator will 
 
 <!-- GETTING STARTED -->
 ## Getting Started
-
 <!-- This is an example of how you may give instructions on setting up your project locally.
 To get a local copy up and running follow these simple example steps. -->
+```
+git clone https://github.com/Nana2929/TCP-Elevator.git
+```
+And then open two terminals, one for the server and the other for the client. Run the following commands in the respective terminals.
+```
+// for server (this needs to be run first to set up the service)
+make
+./server
+```
+```
+// for client
+g++ -o client src/elevator_client.cpp
+./client
+```
 
 ### Prerequisites
 <!-- my c++ dev env and how to install them -->
+This project requires a minimum of C++11 to run.
 
-### Installation
+<!-- ### Installation
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
+<p align="right">(<a href="#readme-top">back to top</a>)</p> -->
 
 <!-- ROADMAP -->
 ## Implementation
 ![](./images/state-diagram.png)
+
+### Multi-threading
+
+The server is implemented using multi-threading.
+The server itself is a thread listening for client request buttons, implemented in `src/elevator_server/elevator_server.cpp`.
+The elevator runs 2 threads, one for printing our 
+
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
 <!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-* [Logo credit: Pop Vectors](https://www.flaticon.com/free-icon/elevator_11105995?term=elevator&page=1&position=30&origin=search&related_id=11105995)
+## Acknowledgments & References
+* [Logo credit | Pop Vectors](https://www.flaticon.com/free-icon/elevator_11105995?term=elevator&page=1&position=30&origin=search&related_id=11105995)
+- [Cpp ctp Linux Socket | Shengyu7697](https://shengyu7697.github.io/cpp-linux-tcp-socket/)
+
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
