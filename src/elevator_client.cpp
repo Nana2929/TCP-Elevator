@@ -11,7 +11,6 @@
 #include "config.hpp"
 // credit: https://shengyu7697.github.io/cpp-linux-tcp-socket/
 
-
 int main() {
   int sock_fd;
   struct sockaddr_in serv_name;

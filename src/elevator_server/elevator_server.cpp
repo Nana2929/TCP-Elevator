@@ -9,8 +9,8 @@
 #include <thread>
 #include <unistd.h>
 
-#include "elevator.hpp"
 #include "../config.hpp"
+#include "elevator.hpp"
 
 void handle_signal(int signal, int client_fd, Elevator &elevator) {
   char response[1024] = {0};

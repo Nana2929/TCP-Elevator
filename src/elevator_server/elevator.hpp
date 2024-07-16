@@ -2,6 +2,7 @@
 #define ELEVATOR_HPP
 
 #include <chrono>
+#include <condition_variable>
 #include <ctime>
 #include <iostream>
 #include <mutex>
@@ -10,7 +11,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <unordered_map>
-#include <condition_variable>
 
 enum class State {
   IDLE_1F,
@@ -32,8 +32,9 @@ private:
       mtx; // `pressedBtns` has sync issues; use mutex lock to protect it!
   std::mutex
       stateMtx; // `currState` has sync issues; use mutex lock to protect it!
-  std::condition_variable stateCv;  // Condition variable for state change notifications
-  bool pressedBtns[BTN_NUM+1];
+  std::condition_variable
+      stateCv; // Condition variable for state change notifications
+  bool pressedBtns[BTN_NUM + 1];
   // thread-safe reading and writing methods for `pressedBtns`
   bool isPressed(const int btn);
   void cleanBtn(const int btn);
@@ -44,8 +45,7 @@ private:
 public:
   // constructor
   Elevator() : currState(State::IDLE_1F), actTime(0) {
-    std::fill(pressedBtns, pressedBtns + (BTN_NUM+1)
-    , false);
+    std::fill(pressedBtns, pressedBtns + (BTN_NUM + 1), false);
   };
   // destructor
   ~Elevator(){};
