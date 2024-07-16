@@ -161,12 +161,11 @@ The server is implemented using multi-threading.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments & References
 * [Logo credit | Pop Vectors](https://www.flaticon.com/free-icon/elevator_11105995?term=elevator&page=1&position=30&origin=search&related_id=11105995)
 - [Cpp ctp Linux Socket | Shengyu7697](https://shengyu7697.github.io/cpp-linux-tcp-socket/)
-
+- [System Design Question: Elevator System Design](https://medium.com/geekculture/system-design-elevator-system-design-interview-question-6e8d03ce1b44)
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
