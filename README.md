@@ -101,17 +101,17 @@ The user can take any action at any time (through keyboard). The elevator will r
 ## Getting Started
 <!-- This is an example of how you may give instructions on setting up your project locally.
 To get a local copy up and running follow these simple example steps. -->
-```
+```bash
 git clone https://github.com/Nana2929/TCP-Elevator.git
 ```
 And then open two terminals, one for the server and the other for the client. Run the following commands in the respective terminals.
-```
+```bash
 // for server (this needs to be run first to set up the service)
 make
 ./server
 // use `make clean` to clean the cache first and rebuild from scratch by running the above
 ```
-```
+```bash
 // for client
 g++ -o client src/elevator_client.cpp
 ./client
@@ -132,6 +132,8 @@ This project requires a minimum of C++11 to run.
 The server is implemented using multi-threading.
 - The server itself is a thread listening for client request buttons, implemented in `src/elevator_server/elevator_server.cpp`.
 - The elevator runs 2 threads, one for printing out current state (`src/elevator_server/elevator.cpp printState()`) and the other for transiting the state (`src/elevator_server/elevator.cpp  stateTransit()`).
+- The maximum client allowed is `1`, because in this setup, one client can control from inside or outside the elevator at any floor, simulate the real-world scenario of multiple users pressing different buttons at the same time.
+### Members of `Elevator` class
   ```cpp
   // ...
     static const int BTN_NUM = 4;
@@ -142,10 +144,9 @@ The server is implemented using multi-threading.
     bool pressedBtns[BTN_NUM+1];
   // ...
   ```
-### Members of `Elevator` class
-  - `currState`: 6 states in total, marking the current state of the elevator (IDLE_1F, OPEN_1F, LIFT, IDLE_2f, OPEN_2F, GO_DOWN)
-  - `pressedBtns`: an array of 5 elements, marking which action buttons are pressed by the user for later request service (1-indexed, first element is dummy)
-  - `actTime`: the time when the last action was taken
+- `currState`: 6 states in total, marking the current state of the elevator (`IDLE_1F`, `OPEN_1F`, `LIFT`, `IDLE_2F`, `OPEN_2F`, `GO_DOWN`)
+- `pressedBtns`: an array of 5 elements, marking which action buttons are pressed by the user for later request service (1-indexed, first element is dummy)
+- `actTime`: the time when the last action was taken
 ### Multi-threading
 - In which it could be observed that, `currState`and `pressedBtns` could be read and written by the *printing thread* and the *transiting thread*, so 2 mutexes are used to protect them; in practice I wrote them setters and getters for encapsulation. Furthermore, because a button press (and the subsequent state change) can happen in the middle of a second, which could cause the *printing thread* to miss out on printing the state (e.g. `OPEN` be printed just once instead of twice), I use a condition variable to notify the *printing thread* that the state has been updated, so that the printing count can be correctly displayed. Note that this could cause the *printing thread* to print out multiple states in one second if the state is updated multiple times in that second.
 - Extra Members of `Elevator` class
